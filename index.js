@@ -11,8 +11,7 @@ require('dotenv').config({ path: './.env' });
 // {{{ configuration checking
 if (
   !process.env.STRIPE_SECRET_KEY ||
-  !process.env.STRIPE_PUBLISHABLE_KEY ||
-  !process.env.STATIC_DIR
+  !process.env.STRIPE_PUBLISHABLE_KEY
 ) {
   console.log(
     'The .env file is not configured. Follow the instructions in the readme to configure the .env file. https://github.com/stripe-samples/subscription-use-cases'
@@ -61,9 +60,49 @@ app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, 'public')))
 // }}}
 
+// {{{ Use JSON parser for parsing payloads as JSON on all non-webhook routes.
+app.use((req, res, next) => {
+  if (req.originalUrl === '/webhook') {
+    next();
+  } else {
+    bodyParser.json()(req, res, next);
+  }
+});
+// }}}
+
 app.get('/', (req, res) => {
   console.log('here');
   res.render("index", {test: "Hello World!!!"});
 });
+
+// {{{ webhooks
+app.post(
+  '/webhook',
+  bodyParser.raw({ type: 'application/json' }),
+  async (req, res) => {
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        req.header('Stripe-Signature'),
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
+    } catch (e) {
+      console.log(e);
+      console.log(`⚠️  Webhook signature verification failed.`);
+      console.log(
+        `⚠️  Check the env file and enter the correct webhook secret.`
+      );
+      return res.sendStatus(400);
+    }
+    
+    const dataObject = event.data.object;
+    console.log(dataObject);
+
+    res.sendStatus(200);
+  }
+);
+// }}}
 
 app.listen(3000, () => console.log(`Node server listening on port http://localhost:${3000}!`));
