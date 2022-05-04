@@ -52,6 +52,8 @@ app.use((req, res, next) => {
     bodyParser.json()(req, res, next);
   }
 });
+
+app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 // }}}
 
 // {{{ Use static to serve static assets.
@@ -60,7 +62,7 @@ app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, 'public')))
 // }}}
 
-// {{{ Use JSON parser for parsing payloads as JSON on all non-webhook routes.
+// {{{ Use JSON and body parser for parsing payloads as JSON on all non-webhook routes.
 app.use((req, res, next) => {
   if (req.originalUrl === '/webhook') {
     next();
@@ -68,6 +70,8 @@ app.use((req, res, next) => {
     bodyParser.json()(req, res, next);
   }
 });
+
+app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 // }}}
 
 app.get('/', (req, res) => {
@@ -96,7 +100,7 @@ app.post(
       );
       return res.sendStatus(400);
     }
-    
+
     const dataObject = event.data.object;
     console.log(dataObject);
 
